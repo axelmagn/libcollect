@@ -8,14 +8,23 @@ List *List_create()
 
 void List_destroy(List *list)
 {
-	LIST_FOREACH(list, first, next, cur) {
-		if(cur->prev) {
-			free(cur->prev);
+	if(list->first != NULL) {
+		check(list->last != NULL, "List has a first element but null "
+				"last.");
+		LIST_FOREACH(list, first, next, cur) {
+			if(cur->prev) {
+				free(cur->prev);
+			}
 		}
+		free(list->last);
+	} else {
+		check(list->last == NULL, "List has a null first element but a "
+				"non-null last.");
 	}
 
-	free(list->last);
 	free(list);
+error:
+	return;
 }
 
 void List_clear(List *list)
@@ -27,15 +36,23 @@ void List_clear(List *list)
 
 void List_clear_destroy(List *list)
 {
-	LIST_FOREACH(list, first, next, cur) {
-		free(cur->value);
-		if(cur->prev) {
-			free(cur->prev);
+	if(list->first != NULL) {
+		check(list->last != NULL, "List has a first element but null "
+				"last.");
+		LIST_FOREACH(list, first, next, cur) {
+			free(cur->value);
+			if(cur->prev) {
+				free(cur->prev);
+			}
 		}
+		free(list->last);
+	} else {
+		check(list->last == NULL, "List has a null first element but a "
+				"non-null last.");
 	}
-
-	free(list->last);
 	free(list);
+error:
+	return;
 }
 
 void List_push(List *list, void *value)

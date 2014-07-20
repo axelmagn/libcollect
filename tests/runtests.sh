@@ -1,4 +1,5 @@
 echo "Running unit tests:"
+VALGRIND="valgrind"
 
 for i in tests/*_tests
 do
