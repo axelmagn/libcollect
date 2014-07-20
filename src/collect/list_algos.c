@@ -1,6 +1,9 @@
 #include <collect/list_algos.h>
 #include <dbg.h>
 
+#define SUCCESS_STATUS 0
+#define FAIL_STATUS -1
+
 typedef int (*List_compare)(void *lhs, void *rhs);
 
 int List_bubble_sort(List *list, List_compare comparator) 
@@ -28,7 +31,37 @@ int List_bubble_sort(List *list, List_compare comparator)
 }
 
 
-List *List_merge_sort(List *list, List_compare comparator) 
+List *List_merge_sort(List *list, List_compare comparator) {
+	ListSortContext context;
+	context.in = list;
+	context.out = NULL;
+	context.comparator = comparator;
+
+	pthread_t sort_pt;
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+	int rc;
+	rc = pthread_create(&sort_pt, &attr, List_pt_merge_sort, 
+			(void *)&context);
+	check(rc == 0, "Return code from pthread_create() on merge sort is %d", 
+			rc);
+
+	void *sort_status;
+	rc = pthread_join(sort_pt, &sort_status);
+	check(rc == 0, "Return code from pthread_join() on merge sort is %d", 
+			rc);
+	check((long)sort_status == SUCCESS_STATUS, "Exit status for merge sort "
+			"is %ld", (long)sort_status);
+error:
+	pthread_attr_destroy(&attr);
+	return context.out;
+}
+
+
+void *List_pt_merge_sort(void *args) 
 {
 	// From Wikipedia:
 	// 1. Divide the unsorted list into n sublists, each containing 1
@@ -36,19 +69,24 @@ List *List_merge_sort(List *list, List_compare comparator)
 	// 2. Repeatedly merge sublists to produce new sorted sublists until
 	//    there is only 1 sublist remaining.  This will be th the sorted 
 	//    list
+	ListSortContext *context = (ListSortContext *)args;
+	List *list = context->in;
+	List_compare comparator = context->comparator;
 
 	List *out = List_create();
 	List *left = NULL;
 	List *right = NULL;
 	List *sorted_left = NULL;
 	List *sorted_right = NULL;
+	long status = FAIL_STATUS;
 
 	// Check for single-node or empty lists, which are already sorted
 	if(list->count < 2) {
 		if(list->count == 1) {
 			List_push(out, list->first->value);
 		}
-		return out;
+		context->out = out;
+		pthread_exit(SUCCESS_STATUS);
 	}
 
 	// Divide list into two new lists
@@ -76,9 +114,51 @@ List *List_merge_sort(List *list, List_compare comparator)
 			"split sizes do not add up to input size.");
 
 	// merge sort each
-	sorted_left = List_merge_sort(left, comparator);
-	sorted_right = List_merge_sort(right, comparator);
+	pthread_t left_sort_pt;
+	pthread_t right_sort_pt;
 
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+	ListSortContext left_sort_ctx;
+	left_sort_ctx.in = left;
+	left_sort_ctx.out = NULL;
+	left_sort_ctx.comparator = comparator;
+
+	ListSortContext right_sort_ctx;
+	right_sort_ctx.in = right;
+	right_sort_ctx.out = NULL;
+	right_sort_ctx.comparator = comparator;
+
+	int rc;
+	rc = pthread_create(&left_sort_pt, &attr, List_pt_merge_sort, 
+			(void *)&left_sort_ctx);
+	check(rc == 0, "Return code from pthread_create() on left sort is %d", 
+			rc);
+	rc = pthread_create(&right_sort_pt, &attr, List_pt_merge_sort,
+			(void *) &right_sort_ctx);
+	check(rc == 0, "Return code from pthread_create() on right sort is %d", 
+			rc);
+
+	pthread_attr_destroy(&attr);
+
+	void *sort_status;
+	rc = pthread_join(left_sort_pt, &sort_status);
+	check(rc == 0, "Return code from pthread_join() on left sort is %d", 
+			rc);
+	check(sort_status == SUCCESS_STATUS, "Exit status for left sort is %ld", 
+			(long)sort_status);
+
+	rc = pthread_join(right_sort_pt, &sort_status);
+	check(rc == 0, "Return code from pthread_join() on right sort is %d", 
+			rc);
+	check(sort_status == SUCCESS_STATUS, "Exit status for right sort is %ld", 
+			(long)sort_status);
+
+
+	sorted_left = left_sort_ctx.out;
+	sorted_right = right_sort_ctx.out;
 	// debug("sorted_left->count:\t%d", sorted_left->count);
 	// debug("sorted_right->count:\t%d", sorted_right->count);
 	check(left->count == sorted_left->count, "Internal sorted list had a "
@@ -128,10 +208,13 @@ List *List_merge_sort(List *list, List_compare comparator)
 	check(out->count == list->count, "merged list count was not equal to "
 			"size of input.");
 
+	status = SUCCESS_STATUS;
+
 error:
 	if(left != NULL) { List_destroy(left); }
 	if(right != NULL) { List_destroy(right); }
 	if(sorted_left != NULL) { List_destroy(sorted_left); }
 	if(sorted_right != NULL) { List_destroy(sorted_right); }
-	return out;
+	context->out = out;
+	pthread_exit((void *)status);
 }
