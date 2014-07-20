@@ -2,19 +2,21 @@
 #define collect_List_h
 
 #include <stdlib.h>
+#include <pthread.h>
 
 struct ListNode;
 
 typedef struct ListNode {
-    struct ListNode *next;
-    struct ListNode *prev;
-    void *value;
+	struct ListNode *next;
+	struct ListNode *prev;
+	void *value;
 } ListNode;
 
 typedef struct List {
-    int count;
-    ListNode *first;
-    ListNode *last;
+	int count;
+	pthread_mutex_t *lock;
+	ListNode *first;
+	ListNode *last;
 } List;
 
 List *List_create();

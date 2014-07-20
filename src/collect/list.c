@@ -3,11 +3,15 @@
 
 List *List_create()
 {
-	return calloc(1, sizeof(List));
+	List *out = calloc(1, sizeof(List));
+	out->lock = calloc(1, sizeof(pthread_mutex_t));
+	pthread_mutex_init(out->lock, NULL);
+	return out;
 }
 
 void List_destroy(List *list)
 {
+	pthread_mutex_lock(list->lock);
 	if(list->first != NULL) {
 		check(list->last != NULL, "List has a first element but null "
 				"last.");
@@ -21,9 +25,13 @@ void List_destroy(List *list)
 		check(list->last == NULL, "List has a null first element but a "
 				"non-null last.");
 	}
-
+	pthread_mutex_unlock(list->lock);
+	pthread_mutex_destroy(list->lock);
+	free(list->lock);
 	free(list);
+	return;
 error:
+	pthread_mutex_unlock(list->lock);
 	return;
 }
 
