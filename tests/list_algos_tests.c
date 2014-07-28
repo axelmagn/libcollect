@@ -3,9 +3,13 @@
 #include <collect/list.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 char *values[] = {"XXXX", "1234", "abcd", "xjvef", "NDSS"};
 #define NUM_VALUES 5
+
+#define LARGE_NUM_VALUES 1000000
+#define SEED 42
 
 List *create_words()
 {
@@ -19,12 +23,44 @@ List *create_words()
 	return words;
 }
 
+List *create_large_numlist()
+{
+	int i = 0;
+	List *nums = List_create();
+	srand(SEED);
+	int *n = malloc(LARGE_NUM_VALUES * sizeof(int));
+	for(i = 0; i < LARGE_NUM_VALUES; i++) {
+		*n = rand();
+		List_push(nums, n);
+		n++;
+	}
+	return nums;
+}
+
+int numcmp(int *l, int *r) {
+	return *l - *r;
+}
+
 int is_sorted(List *words)
 {
 	LIST_FOREACH(words, first, next, cur) {
 		if(cur->next && strcmp(cur->value, cur->next->value) > 0) {
 			debug("%s %s", (char *)cur->value, 
 					(char *)cur->next->value);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+
+int is_numsorted(List *nums)
+{
+	LIST_FOREACH(nums, first, next, cur) {
+		if(cur->next && numcmp(cur->value, cur->next->value) > 0) {
+			debug("%d %d", *(int *)cur->value, 
+					*(int *)cur->next->value);
 			return 0;
 		}
 	}
@@ -77,6 +113,23 @@ char *test_merge_sort()
 	return NULL;
 }
 
+char *test_large_merge_sort()
+{
+	List *nums = create_large_numlist();
+
+	// should work on a list that needs sorting
+	List *res = List_merge_sort(nums, (List_compare)numcmp);
+	mu_assert(is_numsorted(res), "Words are not sorted after merge sort.");
+
+	List *res2 = List_merge_sort(nums, (List_compare)numcmp);
+	mu_assert(is_numsorted(res), "Should still be sorted after merge sort.");
+	List_destroy(res2);
+	List_destroy(res);
+
+	List_destroy(nums);
+	return NULL;
+}
+
 
 char *all_tests()
 {
@@ -84,6 +137,7 @@ char *all_tests()
 
     mu_run_test(test_bubble_sort);
     mu_run_test(test_merge_sort);
+    mu_run_test(test_large_merge_sort);
 
     return NULL;
 }

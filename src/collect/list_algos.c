@@ -1,9 +1,6 @@
 #include <collect/list_algos.h>
 #include <dbg.h>
 
-#define SUCCESS_STATUS 0
-#define FAIL_STATUS -1
-
 typedef int (*List_compare)(void *lhs, void *rhs);
 
 int List_bubble_sort(List *list, List_compare comparator) 
@@ -69,9 +66,6 @@ void *List_pt_merge_sort(void *args)
 	// 2. Repeatedly merge sublists to produce new sorted sublists until
 	//    there is only 1 sublist remaining.  This will be th the sorted 
 	//    list
-	ListSortContext *context = (ListSortContext *)args;
-	List *list = context->in;
-	List_compare comparator = context->comparator;
 
 	List *out = List_create();
 	List *left = NULL;
@@ -79,6 +73,21 @@ void *List_pt_merge_sort(void *args)
 	List *sorted_left = NULL;
 	List *sorted_right = NULL;
 	long status = FAIL_STATUS;
+	int  list_locked = 0;
+
+	// cast context
+	ListSortContext *context = (ListSortContext *)args;
+	List *list = context->in;
+	List_compare comparator = context->comparator;
+	check(list != NULL, "Input list was NULL");
+	
+	// This is a thread call, so we lock the shared data
+	// we also need to track locally whether the thread is locked
+	pthread_mutex_lock(list->lock);
+	list_locked = 1;
+
+	// store this variable for later use
+	int list_count = list->count;
 
 	// Check for single-node or empty lists, which are already sorted
 	if(list->count < 2) {
@@ -86,6 +95,7 @@ void *List_pt_merge_sort(void *args)
 			List_push(out, list->first->value);
 		}
 		context->out = out;
+		pthread_mutex_unlock(list->lock);
 		pthread_exit(SUCCESS_STATUS);
 	}
 
@@ -107,10 +117,14 @@ void *List_pt_merge_sort(void *args)
 		cur = cur->next;
 	}
 
+	// unlock the list after reading.  we don't need it
+	pthread_mutex_unlock(list->lock);
+	list_locked = 0;
+
 	// debug("list->count:\t%d", list->count);
 	// debug("left->count:\t%d", left->count);
 	// debug("right->count:\t%d", right->count);
-	check(list->count == left->count + right->count, "left and right list "
+	check(list_count == left->count + right->count, "left and right list "
 			"split sizes do not add up to input size.");
 
 	// merge sort each
@@ -215,6 +229,7 @@ error:
 	if(right != NULL) { List_destroy(right); }
 	if(sorted_left != NULL) { List_destroy(sorted_left); }
 	if(sorted_right != NULL) { List_destroy(sorted_right); }
+	if(list_locked) { pthread_mutex_unlock(list->lock); }
 	context->out = out;
 	pthread_exit((void *)status);
 }

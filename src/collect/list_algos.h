@@ -3,6 +3,9 @@
 
 #include <collect/list.h>
 
+#define SUCCESS_STATUS 0
+#define FAIL_STATUS -1
+
 typedef int (*List_compare)(void *lhs, void *rhs);
 
 typedef struct ListSortContext {

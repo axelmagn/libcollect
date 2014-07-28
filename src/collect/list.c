@@ -1,19 +1,22 @@
 #include <collect/list.h>
 #include <dbg.h>
 
-void *List_remove_unsafe(List *list, ListNode *node);
-
 List *List_create()
 {
 	List *out = calloc(1, sizeof(List));
-	out->lock = calloc(1, sizeof(pthread_mutex_t));
-	pthread_mutex_init(out->lock, NULL);
+	check(out != NULL, "Failed to allocate List");
+	out->lock = malloc(1, sizeof(pthread_mutex_t));
+	check(out->lock != NULL, "Failed to allocate mutex List->lock");
+	int err = pthread_mutex_init(out->lock, NULL);
+	checK(err == 0, "Failed to initialize mutex List->lock");
 	return out;
+error:
+	if(out) { free(out); }
+	return NULL;
 }
 
 void List_destroy(List *list)
 {
-	pthread_mutex_lock(list->lock);
 	if(list->first != NULL) {
 		check(list->last != NULL, "List has a first element but null "
 				"last.");
@@ -27,28 +30,23 @@ void List_destroy(List *list)
 		check(list->last == NULL, "List has a null first element but a "
 				"non-null last.");
 	}
-	pthread_mutex_unlock(list->lock);
 	pthread_mutex_destroy(list->lock);
 	free(list->lock);
 	free(list);
 	return;
 error:
-	pthread_mutex_unlock(list->lock);
 	return;
 }
 
 void List_clear(List *list)
 {
-	pthread_mutex_lock(list->lock);
 	LIST_FOREACH(list, first, next, cur) {
 		free(cur->value);
 	}
-	pthread_mutex_unlock(list->lock);
 }
 
 void List_clear_destroy(List *list)
 {
-	pthread_mutex_lock(list->lock);
 	if(list->first != NULL) {
 		check(list->last != NULL, "List has a first element but null "
 				"last.");
@@ -63,13 +61,11 @@ void List_clear_destroy(List *list)
 		check(list->last == NULL, "List has a null first element but a "
 				"non-null last.");
 	}
-	pthread_mutex_unlock(list->lock);
 	pthread_mutex_destroy(list->lock);
 	free(list->lock);
 	free(list);
 	return;
 error:
-	pthread_mutex_unlock(list->lock);
 	return;
 }
 
@@ -80,7 +76,6 @@ void List_push(List *list, void *value)
 
 	node->value = value;
 
-	pthread_mutex_lock(list->lock);
 	if(list->last == NULL) {
 		list->first = node;
 		list->last = node;
@@ -90,7 +85,6 @@ void List_push(List *list, void *value)
 		list->last = node;
 	}
 	list->count++;
-	pthread_mutex_unlock(list->lock);
 
 error:
 	return;
@@ -98,10 +92,8 @@ error:
 
 void *List_pop(List *list)
 {
-	pthread_mutex_lock(list->lock);
 	ListNode *node = list->last;
-	void *out = node != NULL ? List_remove_unsafe(list, node) : NULL;
-	pthread_mutex_unlock(list->lock);
+	void *out = node != NULL ? List_remove(list, node) : NULL;
 	return out;
 }
 
@@ -112,7 +104,6 @@ void List_unshift(List *list, void *value)
 
 	node->value = value;
 
-	pthread_mutex_lock(list->lock);
 	if(list->first == NULL) {
 		list->first = node;
 		list->last = node;
@@ -123,7 +114,6 @@ void List_unshift(List *list, void *value)
 	}
 
 	list->count++;
-	pthread_mutex_unlock(list->lock);
 
 error:
 	return;
@@ -131,22 +121,12 @@ error:
 
 void *List_shift(List *list)
 {
-	pthread_mutex_lock(list->lock);
 	ListNode *node = list->first;
-	void *out = node != NULL ? List_remove_unsafe(list, node) : NULL;
-	pthread_mutex_unlock(list->lock);
+	void *out = node != NULL ? List_remove(list, node) : NULL;
 	return out;
 }
 
 void *List_remove(List *list, ListNode *node)
-{
-	pthread_mutex_lock(list->lock);
-	void *out = List_remove_unsafe(list, node);
-	pthread_mutex_unlock(list->lock);
-	return out;
-}
-
-void *List_remove_unsafe(List *list, ListNode *node)
 {
 	void *result = NULL;
 

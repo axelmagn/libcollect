@@ -13,8 +13,8 @@ typedef struct ListNode {
 } ListNode;
 
 typedef struct List {
-	int count;
 	pthread_mutex_t *lock;
+	int count;
 	ListNode *first;
 	ListNode *last;
 } List;
