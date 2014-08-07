@@ -1,6 +1,31 @@
+/*
+ * Linked List data structure.  Includes threaded sorting.
+ * Copyright (C) 2014 Axel Magnuson <axelmagn@gmail.com>
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include <collect/list.h>
 #include <dbg.h>
 
+
+/// Allocate a new list from the heap.
 List *List_create()
 {
 	List *out = calloc(1, sizeof(List));
@@ -15,6 +40,12 @@ error:
 	return NULL;
 }
 
+
+/// Free a list, as well as any nodes belonging to it.
+/**
+ * List_destroy frees list resources, but does not free the values of its
+ * nodes. Refer to List_clear and List_clear_destroy for freeing node values.
+ */
 void List_destroy(List *list)
 {
 	if(list->first != NULL) {
@@ -38,6 +69,13 @@ error:
 	return;
 }
 
+
+/// Free all values contained by the list.
+/**
+ * List_clear frees the values contained by a list, but does not free the list
+ * or its nodes. Refer to List_destroy and list_clear_destroy for freeing list 
+ * structures.
+ */
 void List_clear(List *list)
 {
 	LIST_FOREACH(list, first, next, cur) {
@@ -45,6 +83,12 @@ void List_clear(List *list)
 	}
 }
 
+
+/// Free a list, its nodes, and any values it contains.
+/**
+ * List_clear_destroy frees a list structure, as well as the values it
+ * contains.  It is equivalent to calling List_clear followed by List_destroy.
+ */
 void List_clear_destroy(List *list)
 {
 	if(list->first != NULL) {
@@ -69,13 +113,18 @@ error:
 	return;
 }
 
+
+/// push a new value onto the end of the list.
 void List_push(List *list, void *value)
 {
+	// allocate a new node
 	ListNode *node = calloc(1, sizeof(ListNode));
 	check_mem(node);
 
+	// store the value in the new node
 	node->value = value;
 
+	// append the node at the end of the list
 	if(list->last == NULL) {
 		list->first = node;
 		list->last = node;
@@ -90,6 +139,8 @@ error:
 	return;
 }
 
+
+/// remove and return the end of the list.
 void *List_pop(List *list)
 {
 	ListNode *node = list->last;
@@ -97,6 +148,8 @@ void *List_pop(List *list)
 	return out;
 }
 
+
+/// push a new value onto the beginning of the list.
 void List_unshift(List *list, void *value)
 {
 	ListNode *node = calloc(1, sizeof(ListNode));
@@ -119,6 +172,8 @@ error:
 	return;
 }
 
+
+/// remove and return the beginning of the list.
 void *List_shift(List *list)
 {
 	ListNode *node = list->first;
@@ -126,14 +181,18 @@ void *List_shift(List *list)
 	return out;
 }
 
+
+/// remove and return a specified node from the list.
 void *List_remove(List *list, ListNode *node)
 {
 	void *result = NULL;
 
+	// check that we can actually remove the node
 	check(list->first && list->last, "List is empty.");
 	check(node, "node can't be NULL");
 
-	if(node == list->first && node == list->last) {
+	// unlink node from list
+	if(node == list->first && node == list->last) {	
 		list->first = NULL;
 		list->last = NULL;
 	} else if(node == list->first) {
@@ -157,10 +216,15 @@ void *List_remove(List *list, ListNode *node)
 		before->next = after;
 	}
 
+
+	// adjust count
 	list->count--;
+
+	// store the value and delete the orphan node
 	result = node->value;
 	free(node);
 
 error:
 	return result;
 }
+
