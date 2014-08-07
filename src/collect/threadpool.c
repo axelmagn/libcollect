@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include<collect/threadpool.h>
+#include <dbg.h>
+#include <collect/threadpool.h>
 
 typedef enum {
-	not_shutdown = 0,
-	immediate_shutdown = 1,
-	scheduled_shutdown = 2
+	TPool_not_shutdown = 0,
+	TPool_immediate_shutdown = 1,
+	TPool_scheduled_shutdown = 2
 } TPool_shutdown_state;
 
 static void *TPool_consume(void *pool);
@@ -41,7 +42,7 @@ TPool *TPool_create(int thread_count)
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	for(i = 0; i < thread_count; i++) {
 		pthread_t *thread = malloc(sizeof(pthread_t));
-		List_push(pool->threads, (void *)thread)
+		List_push(pool->threads, (void *)thread);
 		err = pthread_create(thread, &attr, TPool_consume, 
 				(void *)pool);
 		check(err == 0, "Failed to initialize thread %d with error %d",
@@ -53,11 +54,19 @@ error:
 	if(pool) { TPool_destroy(pool); }
 	return NULL;
 }
-void TPool_add(TPool *pool, void (*fucntion)(void *), void *args) 
-{
 
+
+void TPool_add(TPool *pool, void (*function)(void *), void *args) 
+{
+	// TODO
 }
 
 void TPool_destroy(TPool *pool) 
 {
+	// TODO
 }
+
+static void *TPool_consume(void *pool) {
+	// TODO
+	return NULL;
+};

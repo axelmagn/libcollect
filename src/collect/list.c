@@ -30,10 +30,10 @@ List *List_create()
 {
 	List *out = calloc(1, sizeof(List));
 	check(out != NULL, "Failed to allocate List");
-	out->lock = malloc(1, sizeof(pthread_mutex_t));
+	out->lock = calloc(1, sizeof(pthread_mutex_t));
 	check(out->lock != NULL, "Failed to allocate mutex List->lock");
 	int err = pthread_mutex_init(out->lock, NULL);
-	checK(err == 0, "Failed to initialize mutex List->lock");
+	check(err == 0, "Failed to initialize mutex List->lock");
 	return out;
 error:
 	if(out) { free(out); }
