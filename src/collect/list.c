@@ -1,6 +1,14 @@
 #include <collect/list.h>
 #include <dbg.h>
 
+
+typedef struct ListSortContext {
+	List *in;
+	List *out;
+	List_compare comparator;
+} ListSortContext;
+
+
 List *List_create()
 {
 	List *out = calloc(1, sizeof(List));
@@ -14,6 +22,7 @@ error:
 	if(out) { free(out); }
 	return NULL;
 }
+
 
 void List_destroy(List *list)
 {
@@ -38,12 +47,14 @@ error:
 	return;
 }
 
+
 void List_clear(List *list)
 {
 	LIST_FOREACH(list, first, next, cur) {
 		free(cur->value);
 	}
 }
+
 
 void List_clear_destroy(List *list)
 {
@@ -69,6 +80,7 @@ error:
 	return;
 }
 
+
 void List_push(List *list, void *value)
 {
 	ListNode *node = calloc(1, sizeof(ListNode));
@@ -90,12 +102,14 @@ error:
 	return;
 }
 
+
 void *List_pop(List *list)
 {
 	ListNode *node = list->last;
 	void *out = node != NULL ? List_remove(list, node) : NULL;
 	return out;
 }
+
 
 void List_unshift(List *list, void *value)
 {
@@ -119,12 +133,14 @@ error:
 	return;
 }
 
+
 void *List_shift(List *list)
 {
 	ListNode *node = list->first;
 	void *out = node != NULL ? List_remove(list, node) : NULL;
 	return out;
 }
+
 
 void *List_remove(List *list, ListNode *node)
 {
@@ -163,4 +179,9 @@ void *List_remove(List *list, ListNode *node)
 
 error:
 	return result;
+}
+
+
+void List_merge_sort(List *list, List_compare comparator) 
+{
 }
