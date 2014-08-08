@@ -121,6 +121,42 @@ error:
 }
 
 
+/// retrieve the value stored at an index
+void *List_get(List *list, int index) {
+	return List_get_node(list, index)->value;
+}
+
+
+/// retrieve the nodel located at an index
+ListNode *List_get_node(List *list, int index) {
+	ListNode *out = NULL;
+
+	// validate input
+	check(list, "Received null pointer for list.");
+	check(index < list->count, "List size is %d.  Index %d out of bounds.", 
+			list->count, index);
+
+	// seek the node in question.  Seek from whichever side is closest to
+	// minimize time
+	int i;
+	if(index <= list->count / 2) { 
+		// seek forward
+		out = list->first;
+		for(i = 0; i < index; i++) {
+			out = out->next;
+		}
+	} else { 
+		// seek backward
+		out = list->last;
+		for(i = list->count - 1; i > index; i--) {
+			out = out->prev;
+		}
+	}
+error:
+	return node;
+}
+
+
 /// push a new value onto the end of the list.
 void List_push(List *list, void *value)
 {
@@ -236,6 +272,29 @@ error:
 }
 
 
+/// retrieve the value stored at an index
+void *List_get(List *list, int index) {
+}
+
+
+/// merge sort the list
 void List_merge_sort(List *list, List_compare comparator) 
 {
+	// 1. Divide the unsorted list into n sublists, each containing 1
+	//    element
+	// 2. Repeatedly merge sublists to produce new sorted sublists until
+	//    there is only 1 sublist remaining.  This will be th the sorted 
+	//    list
+}
+
+
+/// sort a slice of the list
+void sublist_merge_sort(ListNode *start, int extent) {
+	// test for termination conditions. If the slice size is 1 or less,
+	// then it's sorted.
+	if(extent <= 1) {
+		return;
+	}
+
+	// split list
 }

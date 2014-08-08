@@ -30,12 +30,18 @@ char *test_push_pop()
 {
 	List_push(list, test1);
 	mu_assert(List_last(list) == test1, "Wrong last value.");
+	mu_assert(List_get(list, 0) == test1, "Wrong value at index 0.");
 
 	List_push(list, test2);
 	mu_assert(List_last(list) == test2, "Wrong last value.");
+	mu_assert(List_get(list, 0) == test1, "Wrong value at index 0.");
+	mu_assert(List_get(list, 1) == test2, "Wrong value at index 1.");
 
 	List_push(list, test3);
 	mu_assert(List_last(list) == test3, "Wrong last value.");
+	mu_assert(List_get(list, 0) == test1, "Wrong value at index 0.");
+	mu_assert(List_get(list, 1) == test2, "Wrong value at index 1.");
+	mu_assert(List_get(list, 2) == test3, "Wrong value at index 2.");
 	mu_assert(List_count(list) == 3, "Wrong count on push.");
 
 	char *val = List_pop(list);
@@ -55,12 +61,18 @@ char *test_unshift()
 {
 	List_unshift(list, test1);
 	mu_assert(List_first(list) == test1, "Wrong first value.");
+	mu_assert(List_get(list, 0) == test1, "Wrong value at index 0.");
 
 	List_unshift(list, test2);
 	mu_assert(List_first(list) == test2, "Wrong first value.");
+	mu_assert(List_get(list, 0) == test2, "Wrong value at index 0.");
+	mu_assert(List_get(list, 1) == test1, "Wrong value at index 1.");
 
 	List_unshift(list, test3);
 	mu_assert(List_first(list) == test3, "Wrong first value.");
+	mu_assert(List_get(list, 0) == test3, "Wrong value at index 0.");
+	mu_assert(List_get(list, 1) == test2, "Wrong value at index 1.");
+	mu_assert(List_get(list, 2) == test1, "Wrong value at index 2.");
 	mu_assert(List_count(list) == 3, "Wrong count on unshift.");
 
 	return NULL;

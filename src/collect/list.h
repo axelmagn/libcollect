@@ -79,6 +79,10 @@ void List_clear_destroy(List *list);
 #define List_last(A) ((A)->last != NULL ? (A)->last->value : NULL)
 
 
+/// retrieve the value stored at an index
+void *List_get(List *list, int index);
+
+
 /// push a new value onto the end of the list.
 void List_push(List *list, void *value);
 
@@ -96,12 +100,9 @@ void *List_shift(List *list);
 /// remove and return a specified node from the list.
 void *List_remove(List *list, ListNode *node);
 
+
+/// merge sort the list
 void *List_merge_sort(List *list, List_compare comparator);
-// void *List_merge_sort_threaded(
-	       // List *list, 
-	       // List_compare comparator, 
-	       // int thread_limit
-// );
 
 
 /// convenience for loop iterating across a list.
