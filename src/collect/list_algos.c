@@ -28,7 +28,7 @@ int List_bubble_sort(List *list, List_compare comparator)
 }
 
 
-List *List_merge_sort(List *list, List_compare comparator) {
+List *List_old_merge_sort(List *list, List_compare comparator) {
 	ListSortContext context;
 	context.in = list;
 	context.out = NULL;

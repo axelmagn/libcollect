@@ -24,11 +24,17 @@
 #include <collect/list.h>
 #include <dbg.h>
 
+#define DEFAULT_PTHREAD_LIMIT 50;
+
 
 typedef struct ListSortContext {
-	List *in;
-	List *out;
+	List *list;
+	ListNode *start;
+	int extent;
+	int max_threads;
 	List_compare comparator;
+	int *thread_count;
+	pthread_mutex_t *lock;
 } ListSortContext;
 
 
@@ -43,6 +49,7 @@ List *List_create()
 	check(err == 0, "Failed to initialize mutex List->lock");
 	return out;
 error:
+	if(out->lock) { free(out->lock); }
 	if(out) { free(out); }
 	return NULL;
 }
@@ -121,10 +128,6 @@ error:
 }
 
 
-/// retrieve the value stored at an index
-void *List_get(List *list, int index) {
-	return List_get_node(list, index)->value;
-}
 
 
 /// retrieve the nodel located at an index
@@ -153,7 +156,12 @@ ListNode *List_get_node(List *list, int index) {
 		}
 	}
 error:
-	return node;
+	return out;
+}
+
+/// retrieve the value stored at an index
+void *List_get(List *list, int index) {
+	return List_get_node(list, index)->value;
 }
 
 
@@ -271,25 +279,110 @@ error:
 	return result;
 }
 
-
-/// retrieve the value stored at an index
-void *List_get(List *list, int index) {
+/// Create a context for sort subroutines to share
+ListSortContext *ListSortContext_create( List *list, ListNode *start, 
+		int extent, int max_threads, List_compare comparator)
+{
+	ListSortContext *out = calloc(1, sizeof(ListSortContext));
+	check(out != NULL, "Failed to allocate ListSortContext");
+	out->lock = calloc(1, sizeof(pthread_mutex_t));
+	check(out->lock != NULL, "Failed to allocate mutex");
+	int err = pthread_mutex_init(out->lock, NULL);
+	check(err == 0, "Failed to initialize mutex");
+	out->thread_count = calloc(1, sizeof(int));
+	check(out->thread_count != NULL, "Failed to allocate thread_count");
+	*(out->thread_count) = 0;
+	out->list = list;
+	out->start = start;
+	out->extent = extent;
+	out->max_threads = max_threads;
+	out->comparator = comparator;
+	return out;
+error:
+	if(out->thread_count) { free(out->thread_count); }
+	if(out->lock) { free(out->lock); }
+	if(out) { free(out); }
+	return NULL;
 }
 
+/// Destroy a sort context
+void ListSortContext_destroy(ListSortContext *context) {
+	pthread_mutex_destroy(context->lock);
+	free(context->lock);
+	free(context);
+	return;
+}
+
+/// Create a new context that shares context info with the one provided, but
+/// can specify a new start and extent to sort
+ListSortContext *ListSortContext_fork(ListSortContext *other) {
+	ListSortContext *out = calloc(1, sizeof(ListSortContext));
+	check(out != NULL, "Failed to allocate ListSortContext");
+	out->lock = other->lock;
+	out->thread_count = other->thread_count;
+	out->list = other->list;
+	out->start = other->start;
+	out->extent = other->extent;
+	out->max_threads = other->max_threads;
+	out->comparator = other->comparator;
+	return out;
+error:
+	if(out) { free(out); }
+	return NULL;
+}
+
+/// Free a sort context without freeing any shared information
+void ListSortContext_merge(ListSortContext *context) {
+	free(context);
+	return;
+}
+
+/// Increment thread count by given amount.  If the new thread count would
+/// exceed max_threads, then it is not incremented at all.  Returns amount
+/// incremented (0 if unsuccessful). Amount may be negative.
+int ListSortContext_increment_threads(ListSortContext *context, int amount) {
+	// check that it does not exceed max threads
+	if(*(out->thread_count) + amount > out->max_threads) {
+		return 0;
+	}
+	// check that it does not drop below 0
+	if(*(out->thread_count) + amount < 0) {
+		return 0;
+	}
+	*(out->thread_count) = *(out->thread_count) + amount;
+	return amount;
+}
 
 /// merge sort the list
-void List_merge_sort(List *list, List_compare comparator) 
+/// returns result status.
+ListSortResult List_merge_sort(List *list, List_compare comparator) 
 {
 	// 1. Divide the unsorted list into n sublists, each containing 1
 	//    element
 	// 2. Repeatedly merge sublists to produce new sorted sublists until
 	//    there is only 1 sublist remaining.  This will be th the sorted 
 	//    list
+	
+	ListSortResult out = ERROR;
+
+	ListSortContext *context = ListSortContext_create(list, list->first, 
+			list->count, DEFAULT_PTHREAD_LIMIT, comparator);
+
+	pthread_mutex_lock(list->lock);
+	long err = (long)sublist_merge_sort((void *)context);
+	pthread_mutex_unlock(list->lock);
+error:
+	return out:
 }
 
 
 /// sort a slice of the list
-void sublist_merge_sort(ListNode *start, int extent) {
+void *sublist_merge_sort(void *args) 
+{
+	ListSortContext *context = (ListSortContext *)args;
+	ListNode *start = context->start;
+	int extent = context->extent;
+
 	// test for termination conditions. If the slice size is 1 or less,
 	// then it's sorted.
 	if(extent <= 1) {
@@ -297,4 +390,32 @@ void sublist_merge_sort(ListNode *start, int extent) {
 	}
 
 	// split list
+	int left_extent = extent / 2;
+	int right_extent = extent - extent / 2;
+	ListNode *right_start = start;
+	int i;
+	for(i = 0; i < left_extent; i++) {
+		right_start = right_start->next;
+		check(midpoint != NULL, "Found null next ptr within extent");
+	}
+
+	// sort sublists, spawning threads if available
+	pthread_mutex_lock(context->lock);
+	// if threads are available, spawn threads for subsorts
+	// otherwise, do them recursively in this thread.
+	int incr = ListSortContext_increment_threads(context, 2);
+	int threaded = 0;
+	if(incr == 2) {
+		threaded = 1;
+		left_context = ListSortContext_fork(context);
+		left_context->start = start; // redundant, but safe
+		left_context->extent = left_extent;
+		right_context = ListSortContext_fork(context);
+		right_context->start = right_start;
+		right_context->extent = right_extent;
+		// TODO
+	} else {
+		// TODO
+	}
+	pthread_mutex_unlock(context->lock);
 }

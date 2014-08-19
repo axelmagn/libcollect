@@ -45,6 +45,11 @@ typedef struct List {
 	ListNode *last;
 } List;
 
+typedef enum {
+	SUCCESS,
+	ERROR
+} ListSortResult;
+
 typedef int (*List_compare)(void *lhs, void *rhs);
 
 
@@ -102,7 +107,7 @@ void *List_remove(List *list, ListNode *node);
 
 
 /// merge sort the list
-void *List_merge_sort(List *list, List_compare comparator);
+ListSortResult List_merge_sort(List *list, List_compare comparator);
 
 
 /// convenience for loop iterating across a list.

@@ -15,7 +15,7 @@ typedef struct ListSortContext {
 } ListSortContext;
 
 int List_bubble_sort(List *list, List_compare comparator);
-List *List_merge_sort(List *list, List_compare comparator);
+List *List_old_merge_sort(List *list, List_compare comparator);
 void *List_pt_merge_sort(void *args);
 
 #endif

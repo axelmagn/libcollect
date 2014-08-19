@@ -101,10 +101,10 @@ char *test_merge_sort()
 	List *words = create_words();
 
 	// should work on a list that needs sorting
-	List *res = List_merge_sort(words, (List_compare)strcmp);
+	List *res = List_old_merge_sort(words, (List_compare)strcmp);
 	mu_assert(is_sorted(res), "Words are not sorted after merge sort.");
 
-	List *res2 = List_merge_sort(words, (List_compare)strcmp);
+	List *res2 = List_old_merge_sort(words, (List_compare)strcmp);
 	mu_assert(is_sorted(res), "Should still be sorted after merge sort.");
 	List_destroy(res2);
 	List_destroy(res);
@@ -118,10 +118,10 @@ char *test_large_merge_sort()
 	List *nums = create_large_numlist();
 
 	// should work on a list that needs sorting
-	List *res = List_merge_sort(nums, (List_compare)numcmp);
+	List *res = List_old_merge_sort(nums, (List_compare)numcmp);
 	mu_assert(is_numsorted(res), "Words are not sorted after merge sort.");
 
-	List *res2 = List_merge_sort(nums, (List_compare)numcmp);
+	List *res2 = List_old_merge_sort(nums, (List_compare)numcmp);
 	mu_assert(is_numsorted(res), "Should still be sorted after merge sort.");
 	List_destroy(res2);
 	List_destroy(res);
